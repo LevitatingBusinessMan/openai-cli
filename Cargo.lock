@@ -350,6 +350,7 @@ dependencies = [
  "clap",
  "openai_gpt_rs",
  "reedline",
+ "tokio",
 ]
 
 [[package]]

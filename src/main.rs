@@ -2,6 +2,7 @@
 //https://platform.openai.com/docs/guides/chat/chat-vs-completions
 
 use clap::Parser;
+use openai_gpt_rs::response::Content;
 use reedline::{Reedline, Signal};
 use std::borrow::Cow;
 
@@ -50,24 +51,36 @@ impl reedline::Prompt for State {
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args = Args::parse();
     let client = openai_gpt_rs::client::Client::new(&args.api_key);
 
     let mut state = State {
         name_of_prompt: None,
         prompt: String::new(),
-        model: "text-davinci-003".to_owned(),
+        model: "gpt-3.5-turbo".to_owned(),
     };
 
     let mut line_editor = Reedline::create();    
 
     loop {
+        //println!("{}", &state.prompt);
         let sig = line_editor.read_line(&state);
         match sig {
             Ok(Signal::Success(buffer)) => {
                 state.prompt += &buffer;
-                let res = perform_completion(&client, &state);
+                let res = perform_completion(&client, &state).await;
+                match res {
+                    Ok(completion) => {
+                        state.prompt += &completion;
+                        state.prompt += "\n";
+                        println!("{}", completion);
+                    }
+                    Err(err) => {
+                        println!("{}", err);
+                    }
+                }
             }
             Ok(Signal::CtrlD) | Ok(Signal::CtrlC) => {
                 println!("Quitting");
@@ -90,13 +103,21 @@ async fn perform_completion(client: &openai_gpt_rs::client::Client, state: &Stat
     );
 
     let result = client.create_completion(&completion_args).await;
+
     match result {
         Ok(res) => {
-            println!("{:?}",res.resp);
-            return Ok("this is a stupid library".to_owned());
+            if res.resp.status() != 200 {
+                return Err(format!("Received {}", res.resp.status()));
+            } else {
+                if let Some(comp) = res.get_content(0).await {
+                    return Ok(comp);
+                } else {
+                    return Err("Unable to parse response".to_owned());
+                }
+            }
         }
         Err(err) => {
-            return Err("Eh you got error".to_owned());
+            return Err(format!("{}", err).to_owned());
         }
     }
 }

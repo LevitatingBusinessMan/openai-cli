@@ -9,3 +9,4 @@ edition = "2021"
 clap = { version = "4.1.8", features = ["derive"] }
 openai_gpt_rs = "0.1.1"
 reedline = "0.17.0"
+tokio = "1.26.0"
