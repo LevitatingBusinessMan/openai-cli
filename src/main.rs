@@ -1,3 +1,4 @@
+#![feature(str_split_remainder)]
 //https://platform.openai.com/docs/api-reference/completions
 //https://platform.openai.com/docs/guides/chat/chat-vs-completions
 
@@ -22,7 +23,9 @@ struct State {
     prompt: String,
 
     /// The model used
-    model: String
+    model: String,
+
+    debug: bool,
 }
 
 impl reedline::Prompt for State {
@@ -60,6 +63,7 @@ async fn main() {
         name_of_prompt: None,
         prompt: String::new(),
         model: "gpt-3.5-turbo".to_owned(),
+        debug: false,
     };
 
     let mut line_editor = Reedline::create();    
@@ -68,17 +72,29 @@ async fn main() {
         //println!("{}", &state.prompt);
         let sig = line_editor.read_line(&state);
         match sig {
-            Ok(Signal::Success(buffer)) => {
-                state.prompt += &buffer;
-                let res = perform_completion(&client, &state).await;
-                match res {
-                    Ok(completion) => {
-                        state.prompt += &completion;
-                        state.prompt += "\n";
-                        println!("{}", completion);
+            Ok(Signal::Success(input)) => {
+                if input.starts_with('!') {
+                    let res = handle_command(&mut state, &input);
+                    if let Some(res) = res {
+                        println!("{res}");
                     }
-                    Err(err) => {
-                        println!("{}", err);
+                } else {
+                    state.prompt += &input;
+                    let res = perform_completion(&client, &state).await;
+                    match res {
+                        Ok(completion) => {
+                            state.prompt += &completion;
+                            state.prompt += "\n";
+                            println!("{}", completion.trim());
+
+                            if state.debug {
+                                eprintln!("\nCurrent prompt:\n{:?}", state.prompt);
+                            }
+
+                        }
+                        Err(err) => {
+                            println!("{}", err);
+                        }
                     }
                 }
             }
@@ -96,7 +112,7 @@ async fn main() {
 async fn perform_completion(client: &openai_gpt_rs::client::Client, state: &State) -> Result<String, String>  {
     let completion_args = openai_gpt_rs::args::CompletionArgs::new(
         &state.prompt,
-        None,
+        Some(2048),
         None,
         None,
         None
@@ -118,6 +134,26 @@ async fn perform_completion(client: &openai_gpt_rs::client::Client, state: &Stat
         }
         Err(err) => {
             return Err(format!("{}", err).to_owned());
+        }
+    }
+}
+
+/// Handle a command and return the response
+fn handle_command(state: &mut State, input: &str) -> Option<String> {
+    let mut split_input = input.split(' ');
+    let cmd = &split_input.next().unwrap()[1..];
+    let args = split_input.remainder().unwrap_or_default();
+    match cmd {
+        "debug" => {
+            state.debug = !state.debug;
+            return Some(format!("Debug mode is {}", if state.debug {"on"} else {"off"}));
+        },
+        "model" => {
+            state.model = args.to_owned();
+            return None;
+        }
+        _ => {
+            return Some("Unknown command".to_owned());
         }
     }
 }
