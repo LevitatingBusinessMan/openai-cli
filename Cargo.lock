@@ -339,17 +339,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gpt-cli"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "openai-rust",
- "reedline",
- "tokio",
-]
-
-[[package]]
 name = "h2"
 version = "0.3.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -703,6 +692,17 @@ name = "once_cell"
 version = "1.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7e5500299e16ebb147ae15a00a942af264cf3688f47923b8fc2cd5858f23ad3"
+
+[[package]]
+name = "openai-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "openai-rust",
+ "reedline",
+ "tokio",
+]
 
 [[package]]
 name = "openai-rust"
