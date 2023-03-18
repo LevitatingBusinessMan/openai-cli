@@ -3,9 +3,10 @@
 //https://platform.openai.com/docs/guides/chat/chat-vs-completions
 
 use clap::Parser;
-use openai_gpt_rs::response::Content;
+use openai_rust;
 use reedline::{Reedline, Signal};
 use std::borrow::Cow;
+use anyhow::Result;
 
 #[derive(Parser)]
 #[command(author, version, about = "Access OpenAI's models from the command line", long_about = None)]
@@ -20,7 +21,10 @@ struct State {
     name_of_prompt: Option<String>,
 
     /// Complete prompt to send to GPT
-    prompt: String,
+    //prompt: String,
+
+    /// History of the messages
+    history: Vec<openai_rust::chat::Message>,
 
     /// The model used
     model: String,
@@ -41,7 +45,7 @@ impl reedline::Prompt for State {
         Cow::Owned(format!("({})", &self.model).to_owned())
     }
 
-    fn render_prompt_indicator(&self, prompt_mode: reedline::PromptEditMode) -> Cow<str> {
+    fn render_prompt_indicator(&self, _prompt_mode: reedline::PromptEditMode) -> Cow<str> {
         Cow::Borrowed("> ")
     }
 
@@ -49,7 +53,7 @@ impl reedline::Prompt for State {
         Cow::Borrowed("-")
     }
 
-    fn render_prompt_history_search_indicator(&self, history_search: reedline::PromptHistorySearch) -> Cow<str> {
+    fn render_prompt_history_search_indicator(&self, _history_search: reedline::PromptHistorySearch) -> Cow<str> {
         Cow::Borrowed("search: ")
     }
 }
@@ -57,11 +61,12 @@ impl reedline::Prompt for State {
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
-    let client = openai_gpt_rs::client::Client::new(&args.api_key);
+    let client = openai_rust::Client::new(&args.api_key);
 
     let mut state = State {
         name_of_prompt: None,
-        prompt: String::new(),
+        //prompt: String::new(),
+        history: vec![],
         model: "gpt-3.5-turbo".to_owned(),
         debug: false,
     };
@@ -79,21 +84,22 @@ async fn main() {
                         println!("{res}");
                     }
                 } else {
-                    state.prompt += &input;
-                    let res = perform_completion(&client, &state).await;
+
+                    state.history.push(openai_rust::chat::Message {
+                        role: "user".to_owned(),
+                        content: input
+                    });
+
+                    let res = send_chat(&client, &mut state).await;
                     match res {
-                        Ok(completion) => {
-                            state.prompt += &completion;
-                            state.prompt += "\n";
-                            println!("{}", completion.trim());
-
+                        Ok(msg) => {
+                            println!("{}", msg.trim());
                             if state.debug {
-                                eprintln!("\nCurrent prompt:\n{:?}", state.prompt);
+                                eprintln!("{:?}", state.history);
                             }
-
-                        }
-                        Err(err) => {
-                            println!("{}", err);
+                        },
+                        Err(e) => {
+                            println!("{e}");
                         }
                     }
                 }
@@ -109,33 +115,12 @@ async fn main() {
     }
 }
 
-async fn perform_completion(client: &openai_gpt_rs::client::Client, state: &State) -> Result<String, String>  {
-    let completion_args = openai_gpt_rs::args::CompletionArgs::new(
-        &state.prompt,
-        Some(2048),
-        None,
-        None,
-        None
-    );
-
-    let result = client.create_completion(&completion_args).await;
-
-    match result {
-        Ok(res) => {
-            if res.resp.status() != 200 {
-                return Err(format!("Received {}", res.resp.status()));
-            } else {
-                if let Some(comp) = res.get_content(0).await {
-                    return Ok(comp);
-                } else {
-                    return Err("Unable to parse response".to_owned());
-                }
-            }
-        }
-        Err(err) => {
-            return Err(format!("{}", err).to_owned());
-        }
-    }
+async fn send_chat(client: &openai_rust::Client, state: &mut State) -> Result<String> {
+    let args = openai_rust::chat::ChatArguments::new(&state.model, state.history.clone());
+    let res = client.create_chat(args).await?;
+    let msg = &res.choices[0].message;
+    state.history.push(msg.clone());
+    return Ok(msg.content.clone());
 }
 
 /// Handle a command and return the response
@@ -151,7 +136,14 @@ fn handle_command(state: &mut State, input: &str) -> Option<String> {
         "model" => {
             state.model = args.to_owned();
             return None;
-        }
+        },
+        "system" => {
+            state.history.push(openai_rust::chat::Message {
+                role: "system".to_owned(),
+                content: args.to_owned(),
+            });
+            return None;
+        },
         _ => {
             return Some("Unknown command".to_owned());
         }
