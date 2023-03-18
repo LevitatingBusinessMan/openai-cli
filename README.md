@@ -14,3 +14,6 @@ You can access commands via the `!` prefix. You can currently use it to change t
 But in the future you will be able to save and load prompts and switch between endpoints like completion and chat.
 
 I also intend to add support for completing promts from stdin or files for use in scripting.
+
+## Installation
+You can install this using `cargo install openai-cli` because `gpt-cli` was taken by [this guy](https://github.com/gustawdaniel/gpt-cli) for an [unoriginal](https://github.com/LevitatingBusinessMan/GPT-OS) project.
