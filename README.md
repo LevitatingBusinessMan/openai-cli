@@ -1,5 +1,5 @@
-# GPT-CLI
-gpt-cli is a command line interface to interact with the OpenAI API. It aims to provide most features the API does, but is currently focused on the new chat endpoint.
+# openai-cli
+openai-cli is a command line interface to interact with the OpenAI API. It aims to provide most features the API does, but is currently focused on the new chat endpoint.
 
 Using it looks like this:
 ```
@@ -16,4 +16,4 @@ But in the future you will be able to save and load prompts and switch between e
 I also intend to add support for completing promts from stdin or files for use in scripting.
 
 ## Installation
-You can install this using `cargo install openai-cli` because `gpt-cli` was taken by [this guy](https://github.com/gustawdaniel/gpt-cli) for an [unoriginal](https://github.com/LevitatingBusinessMan/GPT-OS) project.
+Installation can be done via `cargo +nightly install openai-cli`.
