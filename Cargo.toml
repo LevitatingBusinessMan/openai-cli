@@ -1,6 +1,6 @@
 [package]
 name = "openai-cli"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["LevitatingBusinessMan"]
 description = "CLI for the OpenAI API"
@@ -13,6 +13,6 @@ license = "MIT"
 [dependencies]
 anyhow = "1.0.70"
 clap = { version = "4.1.8", features = ["derive", "env"] }
-openai-rust = "0.1.3"
+openai-rust = "0.1.4"
 reedline = "0.17.0"
 tokio = { features = ["macros", "rt-multi-thread"], version = "1.26.0" }
