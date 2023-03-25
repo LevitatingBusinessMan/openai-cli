@@ -9,6 +9,7 @@ use std::borrow::Cow;
 use anyhow::Result;
 use openai_rust::futures_util::{Stream, StreamExt};
 use std::io::Write;
+use std::fs::{File, self};
 
 #[derive(Parser)]
 #[command(author, version, about = "Access OpenAI's models from the command line", long_about = None)]
@@ -165,9 +166,39 @@ fn handle_command(state: &mut State, input: &str) -> Option<String> {
             return None;
         },
         "save" => {
-            let json = serde_json::to_string(&state.history).expect("Failed to serialize history");
-            println!("{json}");
-            return None;
+            let Ok(json) = serde_json::to_string(&state.history) else {
+                return Some("Failed to serialize history".to_owned());
+            };
+            let name = if !args.is_empty() {
+                args
+            } else {
+                if state.name_of_prompt.is_some() {
+                    state.name_of_prompt.as_ref().unwrap()
+                } else {
+                    return Some("I need a name to save this conversation as".to_owned())
+                }
+            };
+            match dirs::data_dir() {
+                Some(mut path) => {
+                    path.push("openai-cli");
+                    if let Err(err) = std::fs::create_dir_all(&path) {
+                        return Some(format!("Failed to create data directory {:?}, {}", path, err)).to_owned();
+                    }
+                    path.set_file_name(format!("{}.json", name));
+                    match File::create(&path) {
+                        Ok(mut file) => {
+                            if let Err(err) = file.write(json.as_bytes()) {
+                                return Some(format!("Failed to write to file {:?}, {}", path, err)).to_owned();
+                            }
+                            Some("Saved".to_owned())
+                        },
+                        Err(err) => Some(format!("Failed to open file {:?}, {}", path, err)).to_owned()
+                    }
+                },
+                None => {
+                    Some("I am not sure where to save this data".to_owned())
+                }
+            }
         },
         _ => {
             return Some("Unknown command".to_owned());
