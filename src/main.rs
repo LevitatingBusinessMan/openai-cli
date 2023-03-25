@@ -95,12 +95,19 @@ async fn main() {
                     let res = send_chat_streaming(&client, &mut state).await;
                     match res {
                         Ok(mut stream) => {
+                            let mut response = String::new();
                             while let Some(events) = stream.next().await {
                                 for event in events.unwrap() {
-                                    print!("{}", event.choices[0].delta.content.as_ref().unwrap_or(&"".to_owned()));
+                                    let delta = event.choices[0].delta.content.as_ref().unwrap_or(&"".to_owned()).to_owned();
+                                    response += &delta;
+                                    print!("{}", delta);
                                     std::io::stdout().flush().unwrap();
                                 }
                             }
+                            state.history.push(openai_rust::chat::Message {
+                                role: "assistant".to_owned(),
+                                content: response
+                            });
                             if state.debug {
                                 eprintln!("\n{:?}", state.history);
                             }
@@ -155,6 +162,11 @@ fn handle_command(state: &mut State, input: &str) -> Option<String> {
                 role: "system".to_owned(),
                 content: args.to_owned(),
             });
+            return None;
+        },
+        "save" => {
+            let json = serde_json::to_string(&state.history).expect("Failed to serialize history");
+            println!("{json}");
             return None;
         },
         _ => {

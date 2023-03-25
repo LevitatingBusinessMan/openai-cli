@@ -723,6 +723,7 @@ dependencies = [
  "clap",
  "openai-rust",
  "reedline",
+ "serde_json",
  "tokio",
 ]
 
