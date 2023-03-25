@@ -12,7 +12,7 @@ use anyhow::Result;
 #[command(author, version, about = "Access OpenAI's models from the command line", long_about = None)]
 struct Args {
     /// Your API key
-    #[arg(short, long, required = true)]
+    #[arg(short, long, required = true, env = "OPENAI_API_KEY")]
     api_key: String,
 }
 
