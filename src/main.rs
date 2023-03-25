@@ -83,10 +83,7 @@ async fn main() {
         match sig {
             Ok(Signal::Success(input)) => {
                 if input.starts_with('!') {
-                    let res = handle_command(&mut state, &input);
-                    if let Some(res) = res {
-                        println!("{res}");
-                    }
+                    handle_command(&mut state, &input);
                 } else {
 
                     state.history.push(openai_rust::chat::Message {
@@ -146,32 +143,32 @@ async fn send_chat_streaming(client: &openai_rust::Client, state: &mut State) ->
 }
 
 /// Handle a command and return the response
-fn handle_command(state: &mut State, input: &str) -> Option<String> {
+fn handle_command(state: &mut State, input: &str) {
     let mut split_input = input.split(' ');
     let cmd = &split_input.next().unwrap()[1..];
     let args = split_input.remainder().unwrap_or_default();
     match cmd {
         "debug" => {
             state.debug = !state.debug;
-            return Some(format!("Debug mode is {}", if state.debug {"on"} else {"off"}));
+            println!("Debug mode is {}", if state.debug {"on"} else {"off"});
         },
         "model" => {
             if args.is_empty() {
-                return Some("You need to specify the model you want".to_owned());
+                println!("You need to specify the model you want");
+            } else {
+                state.model = args.to_owned();
             }
-            state.model = args.to_owned();
-            return None;
         },
         "system" => {
             state.history.push(openai_rust::chat::Message {
                 role: "system".to_owned(),
                 content: args.to_owned(),
             });
-            return None;
         },
         "save" => {
             let Ok(json) = serde_json::to_string(&state.history) else {
-                return Some("Failed to serialize history".to_owned());
+                println!("Failed to serialize history");
+                return;
             };
             let name = if !args.is_empty() {
                 args
@@ -179,36 +176,40 @@ fn handle_command(state: &mut State, input: &str) -> Option<String> {
                 if state.name_of_prompt.is_some() {
                     state.name_of_prompt.as_ref().unwrap()
                 } else {
-                    return Some("I need a name to save this conversation as".to_owned())
+                    println!("I need a name to save this conversation as");
+                    return;
                 }
             };
             match dirs::data_dir() {
                 Some(mut path) => {
                     path.push("openai-cli");
                     if let Err(err) = std::fs::create_dir_all(&path) {
-                        return Some(format!("Failed to create data directory {:?}, {}", path, err)).to_owned();
+                        println!("Failed to create data directory {:?}, {}", path, err);
+                        return;
                     }
                     path.push(format!("{}.json", name));
                     match File::create(&path) {
                         Ok(mut file) => {
                             if let Err(err) = file.write(json.as_bytes()) {
-                                return Some(format!("Failed to write to file {:?}, {}", path, err)).to_owned();
+                                println!("Failed to write to file {:?}, {}", path, err);
+                                return;
                             }
                             state.name_of_prompt = Some(name.to_owned());
-                            Some("Saved".to_owned())
+                            println!("Saved");
                         },
-                        Err(err) => Some(format!("Failed to open file {:?}, {}", path, err)).to_owned()
+                        Err(err) => println!("Failed to open file {:?}, {}", path, err),
                     }
                 },
                 None => {
-                    Some("I am not sure where to save this data".to_owned())
+                    println!("I am not sure where to save this data");
                 }
             }
         },
         "load" => {
             // get filename from args
             if args.is_empty() {
-                return Some("I need the name of the conversation you wish to load".to_owned());
+                println!("I need the name of the conversation you wish to load");
+                return;
             }
             let name = args;
             match dirs::data_dir() {
@@ -220,16 +221,15 @@ fn handle_command(state: &mut State, input: &str) -> Option<String> {
                             if let Ok(history) = serde_json::from_slice(&data) {
                                 state.history = history;
                                 state.name_of_prompt = Some(name.to_owned());
-                                None
                             } else {
-                                Some("Failed to parse JSON".to_owned())
+                                println!("Failed to parse JSON");
                             }
                         },
-                        Err(err) => Some(format!("Failed to open file {:?}, {}", path, err))
+                        Err(err) => println!("Failed to open file {:?}, {}", path, err),
                     }
                 },
                 None => {
-                    Some("Not sure what data directory to read form".to_owned())
+                    println!("Not sure what data directory to read form")
                 }
             }
         },
@@ -243,10 +243,13 @@ fn handle_command(state: &mut State, input: &str) -> Option<String> {
                 };
                 println!("{}\n{}\n", role, msg.content);
             }
-            None
-        },       
+        },
+        "clear" => {
+            state.history.clear();
+            println!("History cleared");
+        },
         _ => {
-            return Some("Unknown command".to_owned());
+            println!("Unknown command");
         }
     }
 }

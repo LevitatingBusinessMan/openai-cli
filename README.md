@@ -11,10 +11,12 @@ Les interfaces en ligne de commande sont incroyables !
 ```
 
 ## Commands
-* `!model`: Set the model you want to use, e.g., `!model gpt-3.5-turbo`
-* `!save`: Save a conversation
-* `!load`: Load a converstation
-* `!history`: Show the converstation history
+* `!system`: Write a system message, e.g., "You will translate text to french".
+* `!save`: Save a conversation.
+* `!load`: Load a converstation.
+* `!history`: Show the converstation history.
+* `!model`: Set the model you want to use, e.g., `!model gpt-3.5-turbo`.
+* `!clear`: Clear the current conversation history.
 
 I also intend to add support for completing promts from stdin or files for use in scripting.
 
