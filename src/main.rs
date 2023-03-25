@@ -102,7 +102,7 @@ async fn main() {
                                 }
                             }
                             if state.debug {
-                                eprintln!("{:?}", state.history);
+                                eprintln!("\n{:?}", state.history);
                             }
                         },
                         Err(e) => {
