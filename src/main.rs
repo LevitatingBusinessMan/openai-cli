@@ -10,6 +10,7 @@ use anyhow::Result;
 use openai_rust::futures_util::{Stream, StreamExt};
 use std::io::Write;
 use std::fs::File;
+use colored::Colorize;
 
 #[derive(Parser)]
 #[command(author, version, about = "Access OpenAI's models from the command line", long_about = None)]
@@ -155,6 +156,9 @@ fn handle_command(state: &mut State, input: &str) -> Option<String> {
             return Some(format!("Debug mode is {}", if state.debug {"on"} else {"off"}));
         },
         "model" => {
+            if args.is_empty() {
+                return Some("You need to specify the model you want".to_owned());
+            }
             state.model = args.to_owned();
             return None;
         },
@@ -184,7 +188,7 @@ fn handle_command(state: &mut State, input: &str) -> Option<String> {
                     if let Err(err) = std::fs::create_dir_all(&path) {
                         return Some(format!("Failed to create data directory {:?}, {}", path, err)).to_owned();
                     }
-                    path.set_file_name(format!("{}.json", name));
+                    path.push(format!("{}.json", name));
                     match File::create(&path) {
                         Ok(mut file) => {
                             if let Err(err) = file.write(json.as_bytes()) {
@@ -210,7 +214,7 @@ fn handle_command(state: &mut State, input: &str) -> Option<String> {
             match dirs::data_dir() {
                 Some(mut path) => {
                     path.push("openai-cli");
-                    path.set_file_name(format!("{}.json", name));
+                    path.push(format!("{}.json", name));
                     match std::fs::read(&path) {
                         Ok(data) => {
                             if let Ok(history) = serde_json::from_slice(&data) {
@@ -229,6 +233,18 @@ fn handle_command(state: &mut State, input: &str) -> Option<String> {
                 }
             }
         },
+        "history" => {
+            for msg in &state.history {
+                let role = match msg.role.as_str() {
+                    "user" => "User".green().bold().underline(),
+                    "assistant" => "Assistant".yellow().bold().underline(),
+                    "system" => "System".red().bold().underline(),
+                    _ => msg.role.bold().underline()
+                };
+                println!("{}\n{}\n", role, msg.content);
+            }
+            None
+        },       
         _ => {
             return Some("Unknown command".to_owned());
         }

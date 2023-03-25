@@ -13,6 +13,7 @@ license = "MIT"
 [dependencies]
 anyhow = "1.0.70"
 clap = { version = "4.1.8", features = ["derive", "env"] }
+colored = "2.0.0"
 dirs = "5.0.0"
 openai-rust = "0.1.4"
 reedline = "0.17.0"

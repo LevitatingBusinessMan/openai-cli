@@ -10,8 +10,11 @@ Unsaved> Command line interfaces are amazing!
 Les interfaces en ligne de commande sont incroyables !
 ```
 
-You can access commands via the `!` prefix. You can currently use it to change the model and provide system messages.
-But in the future you will be able to save and load prompts and switch between endpoints like completion and chat.
+## Commands
+* `!model`: Set the model you want to use, e.g., `!model gpt-3.5-turbo`
+* `!save`: Save a conversation
+* `!load`: Load a converstation
+* `!history`: Show the converstation history
 
 I also intend to add support for completing promts from stdin or files for use in scripting.
 
