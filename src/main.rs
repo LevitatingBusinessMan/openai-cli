@@ -9,7 +9,7 @@ use std::borrow::Cow;
 use anyhow::Result;
 use openai_rust::futures_util::{Stream, StreamExt};
 use std::io::Write;
-use std::fs::{File, self};
+use std::fs::File;
 
 #[derive(Parser)]
 #[command(author, version, about = "Access OpenAI's models from the command line", long_about = None)]
@@ -190,6 +190,7 @@ fn handle_command(state: &mut State, input: &str) -> Option<String> {
                             if let Err(err) = file.write(json.as_bytes()) {
                                 return Some(format!("Failed to write to file {:?}, {}", path, err)).to_owned();
                             }
+                            state.name_of_prompt = Some(name.to_owned());
                             Some("Saved".to_owned())
                         },
                         Err(err) => Some(format!("Failed to open file {:?}, {}", path, err)).to_owned()
@@ -197,6 +198,34 @@ fn handle_command(state: &mut State, input: &str) -> Option<String> {
                 },
                 None => {
                     Some("I am not sure where to save this data".to_owned())
+                }
+            }
+        },
+        "load" => {
+            // get filename from args
+            if args.is_empty() {
+                return Some("I need the name of the conversation you wish to load".to_owned());
+            }
+            let name = args;
+            match dirs::data_dir() {
+                Some(mut path) => {
+                    path.push("openai-cli");
+                    path.set_file_name(format!("{}.json", name));
+                    match std::fs::read(&path) {
+                        Ok(data) => {
+                            if let Ok(history) = serde_json::from_slice(&data) {
+                                state.history = history;
+                                state.name_of_prompt = Some(name.to_owned());
+                                None
+                            } else {
+                                Some("Failed to parse JSON".to_owned())
+                            }
+                        },
+                        Err(err) => Some(format!("Failed to open file {:?}, {}", path, err))
+                    }
+                },
+                None => {
+                    Some("Not sure what data directory to read form".to_owned())
                 }
             }
         },
