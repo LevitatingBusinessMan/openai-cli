@@ -1,8 +1,8 @@
 [package]
 name = "openai-cli"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
-author = "LevitatingBusinessMan"
+authors = ["LevitatingBusinessMan"]
 description = "CLI for the OpenAI API"
 repository = "https://github.com/LevitatingBusinessMan/gpt-cli"
 readme = "README.md"
@@ -13,6 +13,6 @@ license = "MIT"
 [dependencies]
 anyhow = "1.0.70"
 clap = { version = "4.1.8", features = ["derive", "env"] }
-openai-rust = "0.1.0"
+openai-rust = "0.1.3"
 reedline = "0.17.0"
 tokio = { features = ["macros", "rt-multi-thread"], version = "1.26.0" }

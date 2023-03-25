@@ -7,6 +7,8 @@ use openai_rust;
 use reedline::{Reedline, Signal};
 use std::borrow::Cow;
 use anyhow::Result;
+use openai_rust::futures_util::{Stream, StreamExt};
+use std::io::Write;
 
 #[derive(Parser)]
 #[command(author, version, about = "Access OpenAI's models from the command line", long_about = None)]
@@ -90,10 +92,15 @@ async fn main() {
                         content: input
                     });
 
-                    let res = send_chat(&client, &mut state).await;
+                    let res = send_chat_streaming(&client, &mut state).await;
                     match res {
-                        Ok(msg) => {
-                            println!("{}", msg.trim());
+                        Ok(mut stream) => {
+                            while let Some(events) = stream.next().await {
+                                for event in events.unwrap() {
+                                    print!("{}", event.choices[0].delta.content.as_ref().unwrap_or(&"".to_owned()));
+                                    std::io::stdout().flush().unwrap();
+                                }
+                            }
                             if state.debug {
                                 eprintln!("{:?}", state.history);
                             }
@@ -115,12 +122,18 @@ async fn main() {
     }
 }
 
-async fn send_chat(client: &openai_rust::Client, state: &mut State) -> Result<String> {
+async fn _send_chat(client: &openai_rust::Client, state: &mut State) -> Result<String> {
     let args = openai_rust::chat::ChatArguments::new(&state.model, state.history.clone());
     let res = client.create_chat(args).await?;
     let msg = &res.choices[0].message;
     state.history.push(msg.clone());
     return Ok(msg.content.clone());
+}
+
+async fn send_chat_streaming(client: &openai_rust::Client, state: &mut State) -> Result<impl Stream<Item = Result<Vec<openai_rust::chat::stream::ChatResponseEvent>, anyhow::Error>>> {
+    let args = openai_rust::chat::ChatArguments::new(&state.model, state.history.clone());
+    let res = client.create_chat_stream(args).await?;
+    return Ok(res);
 }
 
 /// Handle a command and return the response
