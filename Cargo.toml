@@ -7,6 +7,8 @@ description = "CLI for the OpenAI API"
 repository = "https://github.com/LevitatingBusinessMan/gpt-cli"
 readme = "README.md"
 license = "MIT"
+keywords = ["openai", "gpt", "api", "cli", "terminal"]
+categories = ["command-line-interface", "command-line-utilities"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
