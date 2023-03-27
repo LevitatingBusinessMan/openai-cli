@@ -28,6 +28,4 @@ However by using the `--vim` flag, you can use vim style keybinds instead.
 You can **write newlines** using `ALT+ENTER`.
 
 ## Installation
-Installation can be done via `cargo +nightly install openai-cli`.
-
-You can install `nightly` via `rustup install nightly`.
+Installation can be done via `cargo install openai-cli`.

@@ -1,4 +1,6 @@
-#![feature(str_split_remainder)]
+// https://github.com/rust-lang/rust/issues/77998
+//#![feature(str_split_remainder)]
+
 //https://platform.openai.com/docs/api-reference/completions
 //https://platform.openai.com/docs/guides/chat/chat-vs-completions
 
@@ -177,7 +179,12 @@ async fn send_chat_streaming(client: &openai_rust::Client, state: &mut State) ->
 fn handle_command(state: &mut State, input: &str) {
     let mut split_input = input.split(' ');
     let cmd = &split_input.next().unwrap()[1..];
-    let args = split_input.remainder().unwrap_or_default();
+    
+    // https://github.com/rust-lang/rust/issues/77998
+    // let args = split_input.remainder().unwrap_or_default();
+    
+    let args = split_input.collect::<Vec<&str>>().join(" ");
+
     match cmd {
         "debug" => {
             state.debug = !state.debug;
@@ -202,7 +209,7 @@ fn handle_command(state: &mut State, input: &str) {
                 return;
             };
             let name = if !args.is_empty() {
-                args
+                &args
             } else {
                 if state.name_of_prompt.is_some() {
                     state.name_of_prompt.as_ref().unwrap()
