@@ -1,6 +1,6 @@
 [package]
 name = "openai-cli"
-version = "0.1.4"
+version = "0.1.5"
 edition = "2021"
 authors = ["LevitatingBusinessMan"]
 description = "CLI for the OpenAI API"
