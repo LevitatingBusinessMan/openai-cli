@@ -20,5 +20,14 @@ Les interfaces en ligne de commande sont incroyables !
 
 I also intend to add support for completing promts from stdin or files for use in scripting.
 
+## Keybinds
+By defeault openai-cli uses emacs style keybinds.
+
+However by using the `--vim` flag, you can use vim style keybinds instead.
+
+You can **write newlines** using `ALT+ENTER`.
+
 ## Installation
 Installation can be done via `cargo +nightly install openai-cli`.
+
+You can install `nightly` via `rustup install nightly`.

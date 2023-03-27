@@ -4,7 +4,7 @@
 
 use clap::Parser;
 use openai_rust;
-use reedline::{Reedline, Signal};
+use reedline::{Reedline, Signal, ReedlineEvent, EditCommand, KeyCode, KeyModifiers};
 use std::borrow::Cow;
 use anyhow::Result;
 use openai_rust::futures_util::{Stream, StreamExt};
@@ -18,6 +18,10 @@ struct Args {
     /// Your API key
     #[arg(short, long, required = true, env = "OPENAI_API_KEY")]
     api_key: String,
+    
+    /// Use vim keybinds (instead of emacs)
+    #[arg(short, long)]
+    vim: bool,
 }
 
 struct State {
@@ -75,7 +79,34 @@ async fn main() {
         debug: false,
     };
 
-    let mut line_editor = Reedline::create();    
+
+    // Here we set up the keybinds
+    let edit_mode: Box<dyn reedline::EditMode>;
+    if args.vim {
+        let mut keybdings_normal = reedline::default_vi_normal_keybindings();
+        let keybindings_insert = reedline::default_vi_insert_keybindings();
+
+        keybdings_normal.add_binding(
+            KeyModifiers::ALT,
+            KeyCode::Enter,
+            ReedlineEvent::Edit(vec![EditCommand::InsertNewline])
+        );
+
+        edit_mode = Box::new(reedline::Vi::new(keybdings_normal, keybindings_insert));
+    } else {
+        let mut keybindings = reedline::default_emacs_keybindings();
+        
+        keybindings.add_binding(
+            KeyModifiers::ALT,
+            KeyCode::Enter,
+            ReedlineEvent::Edit(vec![EditCommand::InsertNewline])
+        );
+
+        edit_mode = Box::new(reedline::Emacs::new(keybindings));
+    }
+
+
+    let mut line_editor = Reedline::create().with_edit_mode(edit_mode);    
 
     loop {
         //println!("{}", &state.prompt);
