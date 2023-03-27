@@ -277,6 +277,7 @@ fn handle_command(state: &mut State, input: &str) {
         },
         "clear" => {
             state.history.clear();
+            state.name_of_prompt = None;
             println!("History cleared");
         },
         _ => {
