@@ -17,6 +17,7 @@ Les interfaces en ligne de commande sont incroyables !
 * `!history`: Show the converstation history.
 * `!model`: Set the model you want to use, e.g., `!model gpt-3.5-turbo`.
 * `!clear`: Clear the current conversation history.
+* `!undo`: Undo last message.
 
 I also intend to add support for completing promts from stdin or files for use in scripting.
 

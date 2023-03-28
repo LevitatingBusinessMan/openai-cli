@@ -116,7 +116,7 @@ async fn main() {
         match sig {
             Ok(Signal::Success(input)) => {
                 if input.starts_with('!') {
-                    handle_command(&mut state, &input);
+                    handle_command(&client, &mut state, &input).await;
                 } else {
 
                     state.history.push(openai_rust::chat::Message {
@@ -176,7 +176,8 @@ async fn send_chat_streaming(client: &openai_rust::Client, state: &mut State) ->
 }
 
 /// Handle a command and return the response
-fn handle_command(state: &mut State, input: &str) {
+/// Async so it can do API calls
+async fn handle_command(client: &openai_rust::Client, state: &mut State, input: &str) {
     let mut split_input = input.split(' ');
     let cmd = &split_input.next().unwrap()[1..];
     
@@ -286,6 +287,33 @@ fn handle_command(state: &mut State, input: &str) {
             state.history.clear();
             state.name_of_prompt = None;
             println!("History cleared");
+        },
+        "models" => {
+            match client.list_models().await {
+                Ok(mut models) => {
+                    models.sort_by(|a, b| a.id.cmp(&b.id));
+                    for model in models { println!("{}", model.id) };
+                }
+                Err(err) => println!("{err}"),
+            }
+        },
+        "undo" => {
+            match state.history.pop() {
+                Some(msg) => {
+                    match msg.role.as_str() {
+                        // Popping user would currently not be possible.
+                        "assistant" => {
+                            match  state.history.pop() {
+                                Some(msg2) => println!("Undid {} and {} message", msg2.role, msg.role),
+                                None => println!("Undid {} message", msg.role),
+                            }
+                            
+                        },
+                        _ =>  println!("Undid {} message", msg.role),
+                    }
+                },
+                None => println!("No messages to undo"),
+            }
         },
         _ => {
             println!("Unknown command");
