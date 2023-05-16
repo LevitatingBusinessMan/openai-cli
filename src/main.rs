@@ -13,7 +13,6 @@ use openai_rust::futures_util::{Stream, StreamExt};
 use std::io::Write;
 use std::fs::File;
 use colored::Colorize;
-
 #[derive(Parser)]
 #[command(author, version, about = "Access OpenAI's models from the command line", long_about = None)]
 struct Args {
@@ -81,7 +80,6 @@ async fn main() {
         debug: false,
     };
 
-
     // Here we set up the keybinds
     let edit_mode: Box<dyn reedline::EditMode>;
     if args.vim {
@@ -107,7 +105,6 @@ async fn main() {
         edit_mode = Box::new(reedline::Emacs::new(keybindings));
     }
 
-
     let mut line_editor = Reedline::create().with_edit_mode(edit_mode);    
 
     loop {
@@ -130,9 +127,9 @@ async fn main() {
                             let mut response = String::new();
                             while let Some(events) = stream.next().await {
                                 for event in events.unwrap() {
-                                    let delta = event.choices[0].delta.content.as_ref().unwrap_or(&"".to_owned()).to_owned();
+                                    let delta = event.to_string();
                                     response += &delta;
-                                    print!("{}", delta);
+                                    print!("{}", beautify_response(&response , delta));
                                     std::io::stdout().flush().unwrap();
                                 }
                             }
@@ -158,6 +155,39 @@ async fn main() {
                 println!("Event: {:?}", x);
             }
         }
+    }
+}
+
+/// This functions handles any formatting that can be done on the output.
+/// It's a bit limited because the responses are streamed.
+fn beautify_response(response: &str, delta: String) -> String {
+    let mut count = 0;
+
+    // this loops counts the single backticks
+    for i in 0..response.len() {
+
+        if response.chars().nth(i).unwrap() != '`' {
+            continue;
+        }
+
+        if i > 0 {
+            if response.chars().nth(i-1).unwrap_or('a') == '`' {
+                continue;
+            }
+        }
+        
+        if response.chars().nth(i+1).unwrap_or('a') == '`' {
+            continue;
+        }
+
+        count += 1;
+    }
+
+
+    if count % 2 == 1 {
+        return delta.bold().to_string();
+    } else {
+        return delta;
     }
 }
 
