@@ -17,7 +17,7 @@ use colored::Colorize;
 #[command(author, version, about = "Access OpenAI's models from the command line", long_about = None)]
 struct Args {
     /// Your API key
-    #[arg(short, long, required = true, env = "OPENAI_API_KEY")]
+    #[arg(short, long, required=true, env="OPENAI_API_KEY", hide_env_values=true)]
     api_key: String,
     
     /// Use vim keybinds (instead of emacs)
