@@ -1,4 +1,6 @@
 # openai-cli
+[![Crates.io](https://img.shields.io/crates/v/openai-cli)](https://crates.io/crates/openai-cli)
+
 openai-cli is a command line interface to interact with the OpenAI API. It aims to provide most features the API does, but is currently focused on the new chat endpoint.
 
 [![demo](https://asciinema.org/a/587475.svg)](https://asciinema.org/a/587475)
