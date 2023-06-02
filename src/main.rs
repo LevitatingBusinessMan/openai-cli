@@ -166,7 +166,7 @@ fn beautify_response(response: &str, delta: String) -> String {
     // this loops counts the single backticks
     for i in 0..response.len() {
 
-        if response.chars().nth(i).unwrap() != '`' {
+        if response.chars().nth(i).unwrap_or('a') != '`' {
             continue;
         }
 
