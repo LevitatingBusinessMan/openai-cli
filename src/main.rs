@@ -10,7 +10,7 @@ use reedline::{Reedline, Signal, ReedlineEvent, EditCommand, KeyCode, KeyModifie
 use std::borrow::Cow;
 use anyhow::Result;
 use openai_rust::futures_util::{Stream, StreamExt};
-use std::io::Write;
+use std::io::{Write, Read};
 use std::fs::File;
 use colored::Colorize;
 #[derive(Parser)]
@@ -19,10 +19,29 @@ struct Args {
     /// Your API key
     #[arg(short, long, required=true, env="OPENAI_API_KEY", hide_env_values=true)]
     api_key: String,
+
+    #[command(subcommand)]
+    command: Option<Command>,
     
     /// Use vim keybinds (instead of emacs)
     #[arg(short, long)]
     vim: bool,
+}
+
+#[derive(clap::Subcommand)]
+enum Command {
+    #[command(about="Start a chat session (default)", trailing_var_arg=true)]
+    Chat {
+
+    },
+    #[command(about="Use the \"edits\" endpoint to edit or create a file")]
+    Edit {
+        #[arg(value_hint=clap::ValueHint::FilePath)]
+        file: String,
+        #[arg(num_args=1..)]
+        instruction: Vec<String>,
+    },
+    //Ask,
 }
 
 struct State {
@@ -72,6 +91,25 @@ async fn main() {
     let args = Args::parse();
     let client = openai_rust::Client::new(&args.api_key);
 
+    match &args.command {
+        Some(cmd) => match cmd {
+            Command::Edit{file, instruction} => {edit_mode(file, instruction.join(" "), client).await;},
+            Command::Chat{} => {chat_mode(args, client).await;},
+        },
+        None => chat_mode(args, client).await
+    }
+
+}
+
+async fn edit_mode(file: &str, instruction: String, client: openai_rust::Client) {
+    let mut file = File::open(file).expect("Failed to open file");
+    let mut buf = String::new();
+    file.read_to_string(&mut buf).unwrap();
+    let args = openai_rust::edits::EditArguments::new("text-davinci-edit-001",  buf, instruction.to_owned());
+    println!("{}", client.create_edit(args).await.unwrap());
+}
+
+async fn chat_mode(args: Args, client: openai_rust::Client) {
     let mut state = State {
         name_of_prompt: None,
         //prompt: String::new(),
