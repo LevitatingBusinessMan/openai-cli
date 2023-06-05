@@ -13,6 +13,12 @@ use openai_rust::futures_util::{Stream, StreamExt};
 use std::io::Write;
 use std::fs::File;
 use colored::Colorize;
+use syntect::easy::HighlightLines;
+use syntect::highlighting::{ThemeSet, Style};
+use syntect::parsing::{SyntaxSet, SyntaxReference};
+use syntect::util::as_24_bit_terminal_escaped;
+use lazy_static::lazy_static;
+
 #[derive(Parser)]
 #[command(author, version, about = "Access OpenAI's models from the command line", long_about = None)]
 struct Args {
@@ -65,6 +71,11 @@ impl reedline::Prompt for State {
     fn render_prompt_history_search_indicator(&self, _history_search: reedline::PromptHistorySearch) -> Cow<str> {
         Cow::Borrowed("search: ")
     }
+}
+
+lazy_static! {
+    static ref SS: SyntaxSet = SyntaxSet::load_defaults_newlines();
+    static ref TS: ThemeSet = ThemeSet::load_defaults();
 }
 
 #[tokio::main]
@@ -129,7 +140,11 @@ async fn main() {
                                 for event in events.unwrap() {
                                     let delta = event.to_string();
                                     response += &delta;
-                                    print!("{}", beautify_response(&response , delta));
+                                    if state.debug {
+                                        println!("{:?} - {:?}", delta, get_mode(&response));
+                                    } else {
+                                        print!("{}", beautify_response(&response , delta));
+                                    }
                                     std::io::stdout().flush().unwrap();
                                 }
                             }
@@ -158,11 +173,35 @@ async fn main() {
     }
 }
 
-/// This functions handles any formatting that can be done on the output.
-/// It's a bit limited because the responses are streamed.
-fn beautify_response(response: &str, delta: String) -> String {
+#[derive(Debug)]
+enum PrintMode {
+    Normal,
+    CodeBlock(SyntaxReference),
+    Bold,
+}
+
+fn get_mode(response: &str) -> PrintMode {
     let mut count = 0;
 
+    let mut last_triple = None;
+
+    // this loops counts the triple backticks
+    for i in 2..response.len() {
+        if &response[i-2..i+1] == "```" {
+            count += 1;
+            last_triple = Some(i);
+        }
+    }
+
+    if count % 2 == 1 {
+        let code = &response[last_triple.unwrap()..];
+        let first_line = code.split('\n').next().unwrap();
+        let syntax = SS.find_syntax_by_first_line(first_line);
+        return PrintMode::CodeBlock(syntax.unwrap_or_else(|| SS.find_syntax_plain_text()).to_owned());
+    }
+
+    let mut count = 0;
+    
     // this loops counts the single backticks
     for i in 0..response.len() {
 
@@ -183,11 +222,26 @@ fn beautify_response(response: &str, delta: String) -> String {
         count += 1;
     }
 
-
     if count % 2 == 1 {
-        return delta.bold().to_string();
-    } else {
-        return delta;
+        return PrintMode::Bold;
+    }
+    
+    return PrintMode::Normal;
+}
+
+/// This functions handles any formatting that can be done on the output.
+/// It's a bit limited because the responses are streamed.
+fn beautify_response(response: &str, delta: String) -> String {
+    return match get_mode(response) {
+        PrintMode::Bold => delta.bold().to_string(),
+        PrintMode::CodeBlock(syntax) => {
+            let last_line = response.split('\n').last().unwrap_or("");
+            let mut h = HighlightLines::new(&syntax, &TS.themes["base16-ocean.dark"]);
+            let ranges = h.highlight_line(last_line, &SS).unwrap();
+            let escaped = as_24_bit_terminal_escaped(&ranges[..], true);
+            return "\r".to_owned() + &escaped;
+        },
+        PrintMode::Normal => delta
     }
 }
 
