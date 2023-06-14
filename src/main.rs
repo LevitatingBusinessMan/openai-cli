@@ -76,7 +76,7 @@ async fn main() {
         name_of_prompt: None,
         //prompt: String::new(),
         history: vec![],
-        model: "gpt-3.5-turbo".to_owned(),
+        model: "gpt-3.5-turbo-16k".to_owned(),
         debug: false,
     };
 
