@@ -20,7 +20,6 @@ pub struct EditArgs {
 }
 
 pub async fn edit_mode(args: &EditArgs, client: openai_rust::Client) {
-    println!("{:?}", args.instruction);
     let mut file = File::options().create(true).read(true).write(true).append(false).open(&args.file).expect("Failed to open file");
     let mut original = String::new();
     file.read_to_string(&mut original).unwrap();
@@ -35,10 +34,8 @@ pub async fn edit_mode(args: &EditArgs, client: openai_rust::Client) {
     };
 
     let response = client.create_edit(edit_args).await.expect("Failed to retrieve response from OpenAI");
-    println!("{}", response);
 
-    let diff_path = std::env::var("EXTERNAL_DIFF").unwrap_or("diff".to_owned());
-    let mut diff_proc = std::process::Command::new(diff_path)
+    let mut diff_proc = std::process::Command::new(&args.diff)
         .stdin(Stdio::piped())
         .stdout(Stdio::inherit())
         .arg(&args.file)
