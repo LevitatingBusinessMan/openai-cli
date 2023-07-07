@@ -39,7 +39,7 @@ async fn main() {
 
     match &args.command {
         Some(cmd) => match cmd {
-            Command::Edit(args) => {edit::edit_mode(&args.file, args.instruction.join(" "), client).await;},
+            Command::Edit(args) => {edit::edit_mode(args, client).await;},
             Command::Chat(args) => {chat::chat_mode(args, client).await;},
         },
         None => chat::chat_mode(&ChatArgs::default(), client).await
