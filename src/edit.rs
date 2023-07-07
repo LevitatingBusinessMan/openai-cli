@@ -6,18 +6,17 @@ use inquire::Confirm;
 
 #[derive(Parser)]
 pub struct EditArgs {
-    #[arg(value_hint=clap::ValueHint::ExecutablePath, env = "EXTERNAL_DIFF", long, default_value = "diff", help = "Diff tool to use")]
-    pub diff: String,
-    #[arg(value_hint=clap::ValueHint::FilePath)]
+    #[arg(value_hint=clap::ValueHint::FilePath, help = "The file to create or edit")]
     pub file: String,
-    #[arg(num_args=1.., trailing_var_arg=true)]
+
+    #[arg(num_args=1.., trailing_var_arg=true, help = "The edit instructions for gpt")]
     pub instruction: Vec<String>,
 
-    // this should be based on presence
-    #[arg(short, long, help="Create a new file", action)]
+    #[arg(short, long, help="Create a new file, do not read the original", action = clap::ArgAction::SetTrue)]
     pub new: Option<bool>,
 
-
+    #[arg(value_hint=clap::ValueHint::ExecutablePath, env = "EXTERNAL_DIFF", long, default_value = "diff", help = "Diff tool to use")]
+    pub diff: String,
 }
 
 pub async fn edit_mode(args: &EditArgs, client: openai_rust::Client) {
