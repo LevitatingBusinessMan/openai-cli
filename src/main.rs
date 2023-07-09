@@ -6,6 +6,7 @@
 
 mod edit;
 mod chat;
+mod models;
 
 use chat::ChatArgs;
 use clap::Parser;
@@ -28,6 +29,8 @@ enum Command {
     Chat(chat::ChatArgs),
     #[command(about="Edit or create a file")]
     Edit(edit::EditArgs),
+    #[command(about="List all available models")]
+    Models(models::ModelsArgs),
     //Ask, (Chat but single resonse answer)
     //Complete, (COmplete a prompt)
 }
@@ -41,6 +44,7 @@ async fn main() {
         Some(cmd) => match cmd {
             Command::Edit(args) => {edit::edit_mode(args, client).await;},
             Command::Chat(args) => {chat::chat_mode(args, client).await;},
+            Command::Models(args) => {models::models_mode(args, client).await;},
         },
         None => chat::chat_mode(&ChatArgs::default(), client).await
     }
