@@ -13,27 +13,67 @@ pub struct EditArgs {
     pub instruction: Vec<String>,
 
     #[arg(short, long, help="Create a new file, do not read the original", action = clap::ArgAction::SetTrue)]
-    pub new: Option<bool>,
+    pub new: bool,
 
     #[arg(value_hint=clap::ValueHint::ExecutablePath, env = "EXTERNAL_DIFF", long, default_value = "diff", help = "Diff tool to use")]
     pub diff: String,
+
+    // TODO: autocomplete
+    #[arg(short, long, help = "Model to use", default_value = "gpt-3.5-turbo-16k")]
+    pub model: String,
 }
 
 pub async fn edit_mode(args: &EditArgs, client: openai_rust::Client) {
+    let instruction = args.instruction.join(" ");
     let mut file = File::options().create(true).read(true).write(true).append(false).open(&args.file).expect("Failed to open file");
     let mut original = String::new();
     file.read_to_string(&mut original).unwrap();
 
-    let edit_args = openai_rust::edits::EditArguments {
-        model: "text-davinci-edit-001".to_owned(),
-        input: if !args.new.unwrap_or(false) { Some(original) } else { None },
-        instruction: args.instruction.join(" "),
-        n: None,
-        temperature: None,
-        top_p: None,
+    // let edit_args = openai_rust::edits::EditArguments {
+    //     model: "text-davinci-edit-001".to_owned(),
+    //     input: if !args.new.unwrap_or(false) { Some(original) } else { None },
+    //     instruction: args.instruction.join(" "),
+    //     n: None,
+    //     temperature: None,
+    //     top_p: None,
+    // };
+
+    // let response = client.create_edit(edit_args).await.expect("Failed to retrieve response from OpenAI");
+
+    
+
+    let messages = if original.is_empty() || args.new {
+        vec![
+            openai_rust::chat::Message {
+                role: "system".to_owned(),
+                content: "The user will give you instructions for a program. You shall reply only with the content of that program without further instructions. Do not use codeblocks.".to_owned(),
+            },
+            openai_rust::chat::Message {
+                role: "user".to_owned(),
+                content: instruction,
+            },
+        ]
+    } else {
+        vec![
+            openai_rust::chat::Message {
+                role: "system".to_owned(),
+                content: "Apply changes to the text or code supplied by the user.".to_owned(),
+            },
+            openai_rust::chat::Message {
+                role: "user".to_owned(),
+                content: original,
+            },
+            openai_rust::chat::Message {
+                role: "user".to_owned(),
+                content: instruction,
+            },
+        ]
     };
 
-    let response = client.create_edit(edit_args).await.expect("Failed to retrieve response from OpenAI");
+    println!("{:?}", messages);
+
+    let chat_args = openai_rust::chat::ChatArguments::new(args.model.clone(), messages);
+    let response = client.create_chat(chat_args).await.expect("Failed to get a response from openai");
 
     let mut diff_proc = std::process::Command::new(&args.diff)
         .stdin(Stdio::piped())
@@ -64,5 +104,4 @@ pub async fn edit_mode(args: &EditArgs, client: openai_rust::Client) {
         },
         Err(_) | Ok(false) => {},
     }
-
 }

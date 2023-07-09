@@ -25,7 +25,7 @@ pub struct Args {
 
 #[derive(clap::Subcommand)]
 enum Command {
-    #[command(about="Start a chat session (default)", trailing_var_arg=true)]
+    #[command(about="Start an interactive chat session (default)", trailing_var_arg=true)]
     Chat(chat::ChatArgs),
     #[command(about="Edit or create a file")]
     Edit(edit::EditArgs),
