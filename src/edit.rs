@@ -18,6 +18,9 @@ pub struct EditArgs {
     #[arg(value_hint=clap::ValueHint::ExecutablePath, env = "EXTERNAL_DIFF", long, default_value = "diff", help = "Diff tool to use")]
     pub diff: String,
 
+    #[arg(short, long, help="Show the messages send", action = clap::ArgAction::SetTrue, hide=true)]
+    pub debug: bool,
+
     // TODO: autocomplete
     #[arg(short, long, help = "Model to use", default_value = "gpt-3.5-turbo-16k")]
     pub model: String,
@@ -70,7 +73,9 @@ pub async fn edit_mode(args: &EditArgs, client: openai_rust::Client) {
         ]
     };
 
-    println!("{:?}", messages);
+    if args.debug {
+        println!("{:?}", messages);
+    }
 
     let chat_args = openai_rust::chat::ChatArguments::new(args.model.clone(), messages);
     let response = client.create_chat(chat_args).await.expect("Failed to get a response from openai");
