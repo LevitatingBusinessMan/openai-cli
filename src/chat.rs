@@ -99,7 +99,7 @@ pub async fn chat_mode(args: &ChatArgs, client: openai_rust::Client) {
     }
 
     let mut line_editor = Reedline::create().with_edit_mode(edit_mode);
-    line_editor.enable_bracketed_paste();
+    line_editor.enable_bracketed_paste().unwrap();
 
     loop {
         //println!("{}", &state.prompt);
