@@ -98,7 +98,8 @@ pub async fn chat_mode(args: &ChatArgs, client: openai_rust::Client) {
         edit_mode = Box::new(reedline::Emacs::new(keybindings));
     }
 
-    let mut line_editor = Reedline::create().with_edit_mode(edit_mode);    
+    let mut line_editor = Reedline::create().with_edit_mode(edit_mode);
+    line_editor.enable_bracketed_paste();
 
     loop {
         //println!("{}", &state.prompt);
