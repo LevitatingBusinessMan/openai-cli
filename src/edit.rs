@@ -21,6 +21,9 @@ pub struct EditArgs {
     #[arg(short, long, help="Show the messages send", action = clap::ArgAction::SetTrue, hide=true)]
     pub debug: bool,
 
+    #[arg(short = 'y', long, help="Do not ask for confirmation", action = clap::ArgAction::SetTrue)]
+    pub noconfirm: bool,
+
     // TODO: autocomplete
     #[arg(short, long, help = "Model to use", default_value = "gpt-3.5-turbo-16k")]
     pub model: String,
@@ -42,8 +45,6 @@ pub async fn edit_mode(args: &EditArgs, client: openai_rust::Client) {
     // };
 
     // let response = client.create_edit(edit_args).await.expect("Failed to retrieve response from OpenAI");
-
-    
 
     let messages = if original.is_empty() || args.new {
         vec![
@@ -80,7 +81,8 @@ pub async fn edit_mode(args: &EditArgs, client: openai_rust::Client) {
     let chat_args = openai_rust::chat::ChatArguments::new(args.model.clone(), messages);
     let response = client.create_chat(chat_args).await.expect("Failed to get a response from openai");
 
-    let mut diff_proc = std::process::Command::new(&args.diff)
+    if !args.new {
+        let mut diff_proc = std::process::Command::new(&args.diff)
         .stdin(Stdio::piped())
         .stdout(Stdio::inherit())
         .arg(&args.file)
@@ -89,24 +91,29 @@ pub async fn edit_mode(args: &EditArgs, client: openai_rust::Client) {
         .spawn()
         .expect("Failed to spawn diff process");
 
-    diff_proc.stdin.take().expect("Could not get stdin of diff process")
-        .write(response.to_string().as_bytes())
-        .expect("Failed to write to stdin of diff process");
+        diff_proc.stdin.take().expect("Could not get stdin of diff process")
+            .write(response.to_string().as_bytes())
+            .expect("Failed to write to stdin of diff process");
 
-    diff_proc.wait().expect("Failed to wait for diff process");
-
-    let ans = Confirm::new("Do you want to apply these changes?")
-    .with_default(false)
-    .prompt();
-
-    match ans {
-        Ok(true) => {
-            // I could also repoen the file but whatever
-            file.rewind().expect("Failed to rewind file");
-            file.set_len(0).expect("Failed to truncate file");
-            file.write(response.to_string().as_bytes()).expect("Failed to write to file");
-            println!("File written");
-        },
-        Err(_) | Ok(false) => {},
+        diff_proc.wait().expect("Failed to wait for diff process");
     }
+
+
+    if !args.new && !args.noconfirm {
+        let ans = Confirm::new("Do you want to apply these changes?")
+        .with_default(false)
+        .prompt();
+
+        match ans {
+            Ok(true) => {},
+            Err(_) | Ok(false) => return,
+        } 
+    }
+
+    // I could also repoen the file but whatever
+    file.rewind().expect("Failed to rewind file");
+    file.set_len(0).expect("Failed to truncate file");
+    file.write(response.to_string().as_bytes()).expect("Failed to write to file");
+    println!("File written");
+
 }
