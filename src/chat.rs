@@ -8,8 +8,8 @@ use clap::Parser;
 
 #[derive(Parser)]
 pub struct ChatArgs {
-    //#[arg(short, long)]
-    //prompt_file: Option<String>,
+    #[arg(short, long)]
+    prompt_file: Option<String>,
     /// Use vim keybinds (instead of emacs)
     #[arg(short, long)]
     vim: bool,
@@ -17,7 +17,7 @@ pub struct ChatArgs {
 
 impl ChatArgs {
     pub fn default() -> ChatArgs {
-        ChatArgs { /*prompt_file: None,*/ vim: false }
+        ChatArgs { prompt_file: None, vim: false }
     }
 }
 
@@ -102,6 +102,8 @@ pub async fn chat_mode(args: &ChatArgs, client: openai_rust::Client) {
     line_editor.enable_bracketed_paste().unwrap();
 
     loop {
+        //https://github.com/nushell/reedline/issues/648
+        line_editor.enable_bracketed_paste().unwrap();
         //println!("{}", &state.prompt);
         let sig = line_editor.read_line(&state);
         match sig {
