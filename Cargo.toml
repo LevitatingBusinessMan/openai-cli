@@ -19,7 +19,10 @@ clap = { version = "4.1.8", features = ["derive", "env"] }
 colored = "2.0.0"
 dirs = "5.0.0"
 inquire = "0.6.2"
-openai-rust = "0.5"
-reedline = "0.22.0"
+openai-rust = "1.5"
+reedline = "0.26"
 serde_json = "1.0.94"
-tokio = { features = ["macros", "rt-multi-thread"], version = "1.26.0" }
+tokio = { features = ["macros", "rt-multi-thread"], version = "1" }
+
+[patch.crates-io]
+# openai-rust = { path = "../openai-rust" }

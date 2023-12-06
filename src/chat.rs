@@ -98,12 +98,11 @@ pub async fn chat_mode(args: &ChatArgs, client: openai_rust::Client) {
         edit_mode = Box::new(reedline::Emacs::new(keybindings));
     }
 
-    let mut line_editor = Reedline::create().with_edit_mode(edit_mode);
-    line_editor.enable_bracketed_paste().unwrap();
+    let mut line_editor = Reedline::create()
+        .with_edit_mode(edit_mode)
+        .use_bracketed_paste(true);
 
     loop {
-        //https://github.com/nushell/reedline/issues/648
-        line_editor.enable_bracketed_paste().unwrap();
         //println!("{}", &state.prompt);
         let sig = line_editor.read_line(&state);
         match sig {
@@ -121,13 +120,12 @@ pub async fn chat_mode(args: &ChatArgs, client: openai_rust::Client) {
                     match res {
                         Ok(mut stream) => {
                             let mut response = String::new();
-                            while let Some(events) = stream.next().await {
-                                for event in events.unwrap() {
-                                    let delta = event.to_string();
-                                    response += &delta;
-                                    print!("{}", beautify_response(&response , delta));
-                                    std::io::stdout().flush().unwrap();
-                                }
+                            while let Some(chunk) = stream.next().await {
+                                let chunk = chunk.unwrap();
+                                let delta = chunk.to_string();
+                                response += &delta;
+                                print!("{}", beautify_response(&response , delta));
+                                std::io::stdout().flush().unwrap();
                             }
                             state.history.push(openai_rust::chat::Message {
                                 role: "assistant".to_owned(),
@@ -195,7 +193,7 @@ async fn _send_chat(client: &openai_rust::Client, state: &mut State) -> Result<S
     return Ok(msg.content.clone());
 }
 
-async fn send_chat_streaming(client: &openai_rust::Client, state: &mut State) -> Result<impl Stream<Item = Result<Vec<openai_rust::chat::stream::ChatResponseEvent>, anyhow::Error>>> {
+async fn send_chat_streaming(client: &openai_rust::Client, state: &mut State) -> Result<openai_rust::chat::stream::ChatCompletionChunkStream> {
     let args = openai_rust::chat::ChatArguments::new(&state.model, state.history.clone());
     let res = client.create_chat_stream(args).await?;
     return Ok(res);
